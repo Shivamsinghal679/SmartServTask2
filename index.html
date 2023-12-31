@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Display</title>
+
+    <style>
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .div1,
+        .div2 {
+            width: 48%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .div3 {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        .div3 {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .div3 h3 {
+            width: 100%;
+            text-align: center;
+        }
+
+        .div3 select,
+        .div3 div {
+            flex: 1;
+        }
+
+        .div3 button {
+            margin: 0;
+            padding: 5px 10px;
+        }
+
+
+        .buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="div1">
+            <h3>Step 1 : Input</h3>
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <input onclick="handleInput()" type="file" name="file" accept=".json" required>
+            </form>
+
+
+        </div>
+
+        <div class="div2">
+            <h3>Format</h3>
+            <label for="filetype">File Type:</label>
+            <input type="text" id="filetype"><br><br>
+            <label for="encoding">Character Encoding:</label>
+            <input type="text" id="encoding"><br><br>
+            <label for="delimiter">Delimiter:</label>
+            <input type="text" id="delimiter"><br><br>
+        </div>
+
+        <div class="div3">
+            <h3>Display Handling</h3>
+            <select id="availableFields" multiple size="5">
+
+            </select>
+            <div>
+                <button onclick="addField()">>></button>
+                <button onclick="removeField()">
+                    << </button>
+            </div>
+            <select id="displayedFields" multiple size="5">
+
+            </select>
+        </div>
+    </div>
+
+
+
+    <div class="buttons">
+        <button onclick="next()">Next</button>
+        <button onclick="cancel()">Cancel</button>
+    </div>
+
+    <div class="table-container" style="display: none;">
+        <h3>Displayed JSON Data</h3>
+        <table id="jsonTable" border="1">
+
+        </table>
+    </div>
+
+    <script>
+        let uploadedData = null;
+        function handleInput() {
+            const fileInput = document.querySelector('input[type="file"]');
+
+            fileInput.addEventListener('change', function (event) {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = function (event) {
+                    const content = event.target.result;
+                    try {
+                        uploadedData = JSON.parse(content);
+
+                        if (uploadedData && uploadedData.products) {
+                            const productIds = Object.keys(uploadedData.products);
+
+                            if (productIds.length > 0) {
+                                const columns = Object.keys(uploadedData.products[productIds[0]]);
+                                const availableFields = document.getElementById('availableFields');
+
+                                availableFields.innerHTML = '';
+
+                                columns.forEach(column => {
+                                    const option = document.createElement('option');
+                                    option.value = column;
+                                    option.text = column;
+                                    availableFields.appendChild(option);
+                                });
+                            } else {
+                                alert('No products found in the JSON data.');
+                            }
+                        } else {
+                            alert('Invalid JSON format or missing products data.');
+                        }
+                    } catch (error) {
+                        alert('Error parsing JSON file: ' + error.message);
+                    }
+                };
+
+                reader.readAsText(file);
+            });
+        }
+        function addField() {
+            const availableFields = document.getElementById('availableFields');
+            const displayedFields = document.getElementById('displayedFields');
+
+            const selectedOptions = Array.from(availableFields.selectedOptions);
+            selectedOptions.forEach(option => {
+                availableFields.removeChild(option);
+                displayedFields.appendChild(option);
+            });
+        }
+
+        function removeField() {
+            const availableFields = document.getElementById('availableFields');
+            const displayedFields = document.getElementById('displayedFields');
+
+            const selectedOptions = Array.from(displayedFields.selectedOptions);
+            selectedOptions.forEach(option => {
+                displayedFields.removeChild(option);
+                availableFields.appendChild(option);
+            });
+        }
+
+        function next() {
+            const displayedFields = document.getElementById('displayedFields');
+            const selectedOptions = Array.from(displayedFields.options);
+            const selectedFieldNames = selectedOptions.map(option => option.value);
+
+
+            if (!uploadedData) {
+                alert('Please upload a JSON file.');
+                return;
+            }
+
+            const filteredData = {};
+            const jsonData = uploadedData.products;
+
+
+            for (const key in jsonData) {
+                const filteredObject = {};
+                selectedFieldNames.forEach(fieldName => {
+                    if (jsonData[key].hasOwnProperty(fieldName)) {
+                        filteredObject[fieldName] = jsonData[key][fieldName];
+                    }
+                });
+                filteredData[key] = filteredObject;
+            }
+
+            displayDataAsTable(filteredData);
+        }
+
+        function displayDataAsTable(data) {
+            const table = document.getElementById('jsonTable');
+            table.innerHTML = '';
+
+
+            const sortedData = Object.values(data).sort((a, b) => b.popularity - a.popularity);
+
+
+            const headerRow = table.insertRow();
+            const titleHeader = headerRow.insertCell();
+            titleHeader.textContent = 'Title';
+            const priceHeader = headerRow.insertCell();
+            priceHeader.textContent = 'Price';
+
+
+            sortedData.forEach(item => {
+                const dataRow = table.insertRow();
+                const titleCell = dataRow.insertCell();
+                titleCell.textContent = item.title;
+                const priceCell = dataRow.insertCell();
+                priceCell.textContent = item.price;
+            });
+
+
+            document.querySelector('.table-container').style.display = 'block';
+        }
+
+
+
+
+
+    </script>
+</body>
+
+</html>
